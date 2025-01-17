@@ -16,7 +16,6 @@ import {
     AwsConnection,
     Connection,
     hasScopes,
-    isSsoConnection,
     scopesCodeCatalyst,
     scopesCodeWhispererChat,
     scopesSsoAccountAccess,
@@ -32,6 +31,7 @@ import { AuthEnabledFeatures, AuthError, AuthFlowState, AuthUiClick, userCancell
 import { DevSettings } from '../../../shared/settings'
 import { AuthSSOServer } from '../../../auth/sso/server'
 import { getLogger } from '../../../shared/logger/logger'
+import { isValidUrl } from '../../../shared/utilities/uriUtils'
 
 export abstract class CommonAuthWebview extends VueWebview {
     private readonly className = 'CommonAuthWebview'
@@ -189,9 +189,8 @@ export abstract class CommonAuthWebview extends VueWebview {
 
     abstract signout(): Promise<void>
 
-    async listSsoConnections(): Promise<SsoConnection[]> {
-        return (await Auth.instance.listConnections()).filter((conn) => isSsoConnection(conn)) as SsoConnection[]
-    }
+    /** List current connections known by the extension for the purpose of preventing duplicates. */
+    abstract listSsoConnections(): Promise<SsoConnection[]>
 
     /**
      * Emit stored metric metadata. Does not reset the stored metric metadata, because it
@@ -277,5 +276,9 @@ export abstract class CommonAuthWebview extends VueWebview {
 
     cancelAuthFlow() {
         AuthSSOServer.lastInstance?.cancelCurrentFlow()
+    }
+
+    validateUrl(url: string) {
+        return isValidUrl(url)
     }
 }
