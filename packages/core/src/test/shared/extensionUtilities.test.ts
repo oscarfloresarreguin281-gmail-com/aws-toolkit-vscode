@@ -6,67 +6,28 @@
 import assert from 'assert'
 
 import { AWSError } from 'aws-sdk'
-import { writeFile, remove } from 'fs-extra'
-import * as path from 'path'
 import * as sinon from 'sinon'
 import { DefaultEc2MetadataClient } from '../../shared/clients/ec2MetadataClient'
 import * as vscode from 'vscode'
 import { UserActivity, getComputeRegion, initializeComputeRegion } from '../../shared/extensionUtilities'
 import { isDifferentVersion, setMostRecentVersion } from '../../shared/extensionUtilities'
-import * as filesystemUtilities from '../../shared/filesystemUtilities'
-import { FakeExtensionContext } from '../fakeExtensionContext'
 import { InstanceIdentity } from '../../shared/clients/ec2MetadataClient'
 import { extensionVersion } from '../../shared/vscode/env'
 import { sleep } from '../../shared/utilities/timeoutUtils'
 import globals from '../../shared/extensionGlobals'
-import { createQuickStartWebview } from '../../shared/extensionStartup'
+import { maybeShowMinVscodeWarning } from '../../shared/extensionStartup'
+import { getTestWindow } from './vscode/window'
+import { assertTelemetry } from '../testUtil'
 
 describe('extensionUtilities', function () {
-    describe('createQuickStartWebview', async function () {
-        let context: FakeExtensionContext
-        let tempDir: string | undefined
-
-        beforeEach(async function () {
-            context = await FakeExtensionContext.create()
-            tempDir = await filesystemUtilities.makeTemporaryToolkitFolder()
-            context.extensionPath = tempDir
-        })
-
-        afterEach(async function () {
-            if (tempDir) {
-                await remove(tempDir)
-            }
-        })
-
-        it("throws error if a quick start page doesn't exist", async () => {
-            await assert.rejects(createQuickStartWebview(context, 'irresponsibly-named-file'))
-        })
-
-        it('returns a webview with unaltered text if a valid file is passed without tokens', async function () {
-            const filetext = 'this temp page does not have any tokens'
-            const filepath = 'tokenless'
-            await writeFile(path.join(context.extensionPath, filepath), filetext)
-            const webview = await createQuickStartWebview(context, filepath)
-
-            assert.strictEqual(typeof webview, 'object')
-            const forcedWebview = webview as vscode.WebviewPanel
-            assert.strictEqual(forcedWebview.webview.html.includes(filetext), true)
-        })
-
-        it('returns a webview with tokens replaced', async function () {
-            const token = '!!EXTENSIONROOT!!'
-            const basetext = 'this temp page has tokens: '
-            const filetext = basetext + token
-            const filepath = 'tokenless'
-            await writeFile(path.join(context.extensionPath, filepath), filetext)
-            const webview = await createQuickStartWebview(context, filepath)
-
-            assert.strictEqual(typeof webview, 'object')
-            const forcedWebview = webview as vscode.WebviewPanel
-
-            const pathAsVsCodeResource = forcedWebview.webview.asWebviewUri(vscode.Uri.file(context.extensionPath))
-            assert.strictEqual(forcedWebview.webview.html.includes(`${basetext}${pathAsVsCodeResource}`), true)
-        })
+    it('maybeShowMinVscodeWarning', async () => {
+        const testVscodeVersion = '99.0.0'
+        await maybeShowMinVscodeWarning(testVscodeVersion)
+        const expectedMsg =
+            /will soon require .* 99\.0\.0 or newer. The currently running version .* will no longer receive updates./
+        const msg = await getTestWindow().waitForMessage(expectedMsg)
+        msg.close()
+        assertTelemetry('toolkit_showNotification', [])
     })
 
     describe('isDifferentVersion', function () {

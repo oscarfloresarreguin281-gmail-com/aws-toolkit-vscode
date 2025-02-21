@@ -6,7 +6,6 @@
 import {
     createAutoSuggestions,
     createOpenReferenceLog,
-    createSecurityScan,
     createLearnMore,
     createFreeTierLimitMet,
     createSelectCustomization,
@@ -21,6 +20,7 @@ import {
     createAutoScans,
     createSignIn,
     switchToAmazonQNode,
+    createSecurityScan,
 } from './codeWhispererNodes'
 import { hasVendedIamCredentials } from '../../auth/auth'
 import { AuthUtil } from '../util/authUtil'
@@ -29,7 +29,7 @@ import { CodeScansState, CodeSuggestionsState, vsCodeState } from '../models/mod
 import { Commands } from '../../shared/vscode/commands2'
 import { createExitButton } from '../../shared/ui/buttons'
 import { telemetry } from '../../shared/telemetry/telemetry'
-import { getLogger } from '../../shared/logger'
+import { getLogger } from '../../shared/logger/logger'
 
 function getAmazonQCodeWhispererNodes() {
     const autoTriggerEnabled = CodeSuggestionsState.instance.isSuggestionsEnabled()
@@ -66,7 +66,7 @@ function getAmazonQCodeWhispererNodes() {
         createGettingStarted(), // "Learn" node : opens Learn CodeWhisperer page
 
         // Security scans
-        createSeparator('Security Scans'),
+        createSeparator('Code Reviews'),
         ...(AuthUtil.instance.isBuilderIdInUse() ? [] : [createAutoScans(autoScansEnabled)]),
         createSecurityScan(),
 

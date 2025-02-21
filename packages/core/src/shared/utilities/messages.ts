@@ -6,9 +6,9 @@
 import * as vscode from 'vscode'
 import * as nls from 'vscode-nls'
 import * as localizedText from '../localizedText'
-import { getLogger } from '../../shared/logger'
+import { getLogger } from '../../shared/logger/logger'
 import { ProgressEntry } from '../../shared/vscode/window'
-import { getIdeProperties, isCloud9 } from '../extensionUtilities'
+import { getIdeProperties } from '../extensionUtilities'
 import { sleep } from './timeoutUtils'
 import { Timeout } from './timeoutUtils'
 import { addCodiconToString } from './textUtilities'
@@ -16,8 +16,9 @@ import { getIcon, codicon } from '../icons'
 import globals from '../extensionGlobals'
 import { openUrl } from './vsCodeUtils'
 import { AmazonQPromptSettings, ToolkitPromptSettings } from '../../shared/settings'
-import { telemetry } from '../telemetry/telemetry'
+import { telemetry, ToolkitShowNotification } from '../telemetry/telemetry'
 import { vscodeComponent } from '../vscode/commands2'
+import { getTelemetryReasonDesc } from '../errors'
 
 export const messages = {
     editCredentials(icon: boolean) {
@@ -35,21 +36,31 @@ export function makeFailedWriteMessage(filename: string): string {
     return message
 }
 
-function showMessageWithItems(
-    message: string,
+export function showMessage(
     kind: 'info' | 'warn' | 'error' = 'error',
+    message: string,
     items: string[] = [],
-    useModal: boolean = false
+    options: vscode.MessageOptions & { telemetry?: boolean } = {},
+    metric: Partial<ToolkitShowNotification> = {}
 ): Thenable<string | undefined> {
-    switch (kind) {
-        case 'info':
-            return vscode.window.showInformationMessage(message, { modal: useModal }, ...items)
-        case 'warn':
-            return vscode.window.showWarningMessage(message, { modal: useModal }, ...items)
-        case 'error':
-        default:
-            return vscode.window.showErrorMessage(message, { modal: useModal }, ...items)
-    }
+    return telemetry.toolkit_showNotification.run(async (span) => {
+        span.record({
+            passive: true,
+            id: 'unknown',
+            component: 'editor',
+            ...metric,
+        })
+
+        switch (kind) {
+            case 'info':
+                return vscode.window.showInformationMessage(message, options, ...items)
+            case 'warn':
+                return vscode.window.showWarningMessage(message, options, ...items)
+            case 'error':
+            default:
+                return vscode.window.showErrorMessage(message, options, ...items)
+        }
+    })
 }
 
 /**
@@ -75,7 +86,16 @@ export async function showMessageWithUrl(
     const uri = typeof url === 'string' ? vscode.Uri.parse(url) : url
     const items = [...extraItems, urlItem]
 
-    const p = showMessageWithItems(message, kind, items, useModal)
+    const p = showMessage(
+        kind,
+        message,
+        items,
+        { modal: useModal },
+        {
+            id: 'showMessageWithUrl',
+            reasonDesc: getTelemetryReasonDesc(message),
+        }
+    )
     return p.then<string | undefined>((selection) => {
         if (selection === urlItem) {
             void openUrl(uri)
@@ -102,7 +122,16 @@ export async function showViewLogsMessage(
     const logsItem = localize('AWS.generic.message.viewLogs', 'View Logs...')
     const items = [...extraItems, logsItem]
 
-    const p = showMessageWithItems(message, kind, items)
+    const p = showMessage(
+        kind,
+        message,
+        items,
+        {},
+        {
+            id: 'showViewLogsMessage',
+            reasonDesc: getTelemetryReasonDesc(message),
+        }
+    )
     return p.then<string | undefined>((selection) => {
         if (selection === logsItem) {
             globals.logOutputChannel.show(true)
@@ -165,7 +194,7 @@ export async function showReauthenticateMessage({
     reauthFunc: () => Promise<void>
     source?: string
 }) {
-    const shouldShow = await settings.isPromptEnabled(suppressId as any)
+    const shouldShow = settings.isPromptEnabled(suppressId as any)
     if (!shouldShow) {
         return
     }
@@ -218,11 +247,6 @@ async function showProgressWithTimeout(
     if (showAfterMs === 0) {
         showAfterMs = 1 // Show immediately.
     }
-    // Cloud9 doesn't support `ProgressLocation.Notification`. User won't be able to cancel.
-    if (isCloud9()) {
-        options.location = vscode.ProgressLocation.Window
-    }
-
     // See also: codecatalyst.ts:LazyProgress
     const progressPromise: Promise<vscode.Progress<{ message?: string; increment?: number }>> = new Promise(
         (resolve, reject) => {

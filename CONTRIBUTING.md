@@ -133,7 +133,7 @@ You can also use these NPM tasks (see `npm run` for the full list):
     1. Declare a global unhandledRejection handler.
         ```ts
         process.on('unhandledRejection', (e) => {
-            getLogger('channel').error(
+            getLogger().error(
                 localize(
                     'AWS.channel.aws.toolkit.activation.error',
                     'Error Activating {0} Toolkit: {1}',
@@ -188,11 +188,11 @@ To run a single test in VSCode, do any one of:
 
     -   Unix/macOS/POSIX shell:
         ```
-        TEST_FILE=src/test/foo.test.ts npm run test
+        TEST_FILE=../core/src/test/foo.test.ts npm run test
         ```
     -   Powershell:
         ```
-        $Env:TEST_FILE = "src/test/foo.test.ts"; npm run test
+        $Env:TEST_FILE = "../core/src/test/foo.test.ts"; npm run test
         ```
 
 -   To run all tests in a particular subdirectory, you can edit
@@ -209,16 +209,26 @@ To run tests against a specific folder in VSCode, do any one of:
 -   Run in your terminal
     -   Unix/macOS/POSIX shell:
         ```
-        TEST_DIR=src/test/foo npm run test
+        TEST_DIR=../core/src/test/foo npm run test
         ```
     -   Powershell:
         ```
-        $Env:TEST_DIR = "src/test/foo"; npm run test
+        $Env:TEST_DIR = "../core/src/test/foo"; npm run test
         ```
+
+#### Run jscpd ("Copy-Paste Detection")
+
+If the "Copy-Paste Detection" CI job fails, you will find it useful to check things locally. To
+check a specific file:
+
+    npx jscpd --config .github/workflows/jscpd.json --pattern packages/…/src/foo.ts
+
+See the [jscpd cli documentation](https://github.com/kucherenko/jscpd/tree/master/apps/jscpd) for
+more options.
 
 ### Coverage report
 
-You can find the coverage report at `./coverage/amazonq/lcov-report/index.html` and `./coverage/core/lcov-report/index.html` after running the tests. Tests ran from the workspace launch config won't generate a coverage report automatically because it can break file watching.
+You can find the coverage report at `./coverage/amazonq/lcov-report/index.html` and `./coverage/toolkit/lcov-report/index.html` after running the tests. Tests ran from the workspace launch config won't generate a coverage report automatically because it can break file watching.
 
 ### CodeCatalyst Blueprints
 
@@ -228,9 +238,12 @@ You can find documentation to create VSCode IDE settings for CodeCatalyst bluepr
 
 Before sending a pull request:
 
+1. Treat all work as PUBLIC. Private `feature/x` branches will _not_ be squash-merged at release time. This has several benefits:
+    - Avoids mistakes (accidental exposure to public)!
+    - Avoids needing to erase (squash-merge) history.
 1. Check that you are working against the latest source on the `master` branch.
-2. Check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
-3. Open an issue to discuss any significant work.
+1. Check existing open, and recently merged, pull requests to make sure someone else hasn't addressed the problem already.
+1. Open an issue to discuss any significant work.
 
 To send a pull request:
 
@@ -345,39 +358,38 @@ The `aws.dev.forceDevMode` setting enables or disables Toolkit "dev mode". Witho
     -   Example: `getLogger().error('topic: widget failed: %O', { foo: 'bar', baz: 42 })`
 -   Log messages are written to the extension Output channel, which you can view in vscode by visiting the "Output" panel and selecting `AWS Toolkit Logs` or `Amazon Q Logs`.
 -   Use the `aws.dev.logfile` setting to set the logfile path to a fixed location, so you can follow
-    and filter logs using shell tools like `tail` and `grep`. For example in settings.json,
-    ```
-    "aws.dev.logfile": "~/awstoolkit.log",
-    ```
-    then you can tail the logfile in your terminal:
-    ```
-    tail -F ~/awstoolkit.log
-    ```
--   Use the `AWS (Developer): Watch Logs` command to watch and filter Toolkit logs (including
-    telemetry) in VSCode.
-    -   Only available if you enabled "dev mode" (`aws.dev.forceDevMode` setting, see above).
-    -   Enter text in the Debug Console filter box to show only log messages with that text. <br/>
-        <img src="./docs/images/debug-console-filter.png" alt="VSCode Debug Console" width="320"/>
+    and filter logs using shell tools like `tail` and `grep`.
+    -   Note: this always logs at **debug log-level** (though you can temporarily override that from the `AWS Toolkit Logs` UI).
+    -   Example `settings.json`:
+        ```
+        "aws.dev.logfile": "~/awstoolkit.log",
+        ```
+        then you can tail the logfile in your terminal:
+        ```
+        tail -F ~/awstoolkit.log
+        ```
+-   Use the Output panel to watch and filter Toolkit logs (including telemetry) in VSCode.
+    -   Enter text in the Output panel filter box to show only log messages with that text.
 
 #### Enabling Debug Logs
 
 How to enable more detailed debug logs in the extensions.
 If you need to report an issue attach these to give the most detailed information.
 
-1. Open the Command Palette (`cmd/ctrl` + `shift` + `p`), then search for "View Logs". Choose the correct option for the extension you want, eg: `AWS: View Logs` or `Amazon Q: View Logs`
-   ![](./docs/images/logsView.png)
+1. Open the Command Palette (`cmd/ctrl` + `shift` + `p`), then search for "View Logs". Choose either `AWS: View Logs` or `Amazon Q: View Logs`.
+    - ![](./docs/images/logsView.png)
 2. Click the gear icon on the bottom right and select `Debug`
-   ![](./docs/images/logsSetDebug.png)
+    - ![](./docs/images/logsSetDebug.png)
 3. Click the gear icon again and select `Set As Default`. This will ensure we stay in `Debug` until explicitly changed
-   ![](./docs/images/logsSetDefault.png)
+    - ![](./docs/images/logsSetDefault.png)
 4. Open the Command Palette again and select `Reload Window`.
 5. Now you should see additional `[debug]` prefixed logs in the output.
-   ![](./docs/images/logsDebugLog.png)
+    - ![](./docs/images/logsDebugLog.png)
 
 ### Telemetry
 
 -   See [docs/telemetry.md](./docs/telemetry.md) for guidelines on developing telemetry in this project.
--   To watch Toolkit telemetry events, use the `AWS (Developer): Watch Logs` command (see [Logging](#logging) above) and enter "telemetry" in the Debug Console filter box.
+-   To watch Toolkit telemetry events, use the `Amazon Q: View Logs` command (see [Logging](#logging) above) and enter "telemetry" in the filter box.
 
 ### Service Endpoints
 
@@ -618,7 +630,7 @@ If you are contribuing visual assets from other open source repos, the source re
 ## Using new vscode APIs
 
 The minimum required vscode version specified in [package.json](https://github.com/aws/aws-toolkit-vscode/blob/07119655109bb06105a3f53bbcd86b812b32cdbe/package.json#L16)
-is decided by the version of vscode running in Cloud9 and other vscode-compatible targets.
+is decided by the version of vscode running in other supported vscode-compatible targets (e.g. web).
 
 But you can still use the latest vscode APIs, by checking the current running vscode version. For example, to use a vscode 1.64 API:
 

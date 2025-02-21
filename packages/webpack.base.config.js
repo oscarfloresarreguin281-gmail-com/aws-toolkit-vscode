@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-//@ts-check
+// @ts-check
 
 'use strict'
 
 const path = require('path')
 const webpack = require('webpack')
-const { ESBuildMinifyPlugin } = require('esbuild-loader')
+const { EsbuildPlugin } = require('esbuild-loader')
 const fs = require('fs')
 const { NLSBundlePlugin } = require('vscode-nls-dev/lib/webpack-bundler')
 const CircularDependencyPlugin = require('circular-dependency-plugin')
@@ -20,7 +20,7 @@ const packageJsonFile = path.join(currentDir, 'package.json')
 const packageJson = JSON.parse(fs.readFileSync(packageJsonFile, 'utf8'))
 const packageId = `${packageJson.publisher}.${packageJson.name}`
 
-//@ts-check
+// @ts-check
 /** @typedef {import('webpack').Configuration} WebpackConfig **/
 
 module.exports = (env = {}, argv = {}) => {
@@ -59,7 +59,7 @@ module.exports = (env = {}, argv = {}) => {
             },
         },
         node: {
-            __dirname: false, //preserve the default node.js behavior for __dirname
+            __dirname: false, // preserve the default node.js behavior for __dirname
         },
         module: {
             rules: [
@@ -101,6 +101,10 @@ module.exports = (env = {}, argv = {}) => {
             new webpack.DefinePlugin({
                 EXTENSION_VERSION: JSON.stringify(packageJson.version),
             }),
+            new webpack.DefinePlugin({
+                __VUE_OPTIONS_API__: 'true',
+                __VUE_PROD_DEVTOOLS__: 'false',
+            }),
             new CircularDependencyPlugin({
                 exclude: /node_modules|testFixtures/,
                 failOnError: true,
@@ -109,7 +113,7 @@ module.exports = (env = {}, argv = {}) => {
         optimization: {
             minimize: !isDevelopment,
             minimizer: [
-                new ESBuildMinifyPlugin({
+                new EsbuildPlugin({
                     target: 'es2021',
                     // Are these enabled by default?
                     // minify: true,

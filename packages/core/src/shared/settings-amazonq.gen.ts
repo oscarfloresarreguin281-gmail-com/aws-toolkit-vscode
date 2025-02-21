@@ -17,15 +17,18 @@ export const amazonqSettings = {
         "codeWhispererConnectionExpired": {},
         "amazonQWelcomePage": {},
         "amazonQSessionConfigurationMessage": {},
+        "minIdeVersion": {},
         "ssoCacheError": {}
     },
     "amazonQ.showInlineCodeSuggestionsWithCodeReferences": {},
+    "amazonQ.allowFeatureDevelopmentToRunCodeAndTests": {},
     "amazonQ.importRecommendationForInlineCodeSuggestions": {},
     "amazonQ.shareContentWithAWS": {},
     "amazonQ.workspaceIndex": {},
     "amazonQ.workspaceIndexWorkerThreads": {},
     "amazonQ.workspaceIndexUseGPU": {},
-    "amazonQ.workspaceIndexMaxSize": {}
+    "amazonQ.workspaceIndexMaxSize": {},
+    "amazonQ.ignoredSecurityIssues": {}
 }
 
 export default amazonqSettings
