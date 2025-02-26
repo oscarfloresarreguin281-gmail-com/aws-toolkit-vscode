@@ -16,7 +16,6 @@ import {
     AwsConnection,
     Connection,
     hasScopes,
-    isSsoConnection,
     scopesCodeCatalyst,
     scopesCodeWhispererChat,
     scopesSsoAccountAccess,
@@ -25,13 +24,14 @@ import {
 } from '../../../auth/connection'
 import { Auth } from '../../../auth/auth'
 import { StaticProfile, StaticProfileKeyErrorMessage } from '../../../auth/credentials/types'
-import { telemetry } from '../../../shared/telemetry'
+import { telemetry } from '../../../shared/telemetry/telemetry'
 import { AuthAddConnection } from '../../../shared/telemetry/telemetry'
 import { AuthSources } from '../util'
 import { AuthEnabledFeatures, AuthError, AuthFlowState, AuthUiClick, userCancelled } from './types'
 import { DevSettings } from '../../../shared/settings'
 import { AuthSSOServer } from '../../../auth/sso/server'
 import { getLogger } from '../../../shared/logger/logger'
+import { isValidUrl } from '../../../shared/utilities/uriUtils'
 
 export abstract class CommonAuthWebview extends VueWebview {
     private readonly className = 'CommonAuthWebview'
@@ -59,6 +59,22 @@ export abstract class CommonAuthWebview extends VueWebview {
 
     public getRegions(): Region[] {
         return globals.regionProvider.getRegions().reverse()
+    }
+
+    private didCall: { login: boolean; reauth: boolean } = { login: false, reauth: false }
+    public setUiReady(state: 'login' | 'reauth') {
+        // Prevent telemetry spam, since showing/hiding chat triggers this each time.
+        // So only emit once.
+        if (this.didCall[state]) {
+            return
+        }
+
+        telemetry.webview_load.emit({
+            passive: true,
+            webviewName: state,
+            result: 'Succeeded',
+        })
+        this.didCall[state] = true
     }
 
     /**
@@ -189,9 +205,8 @@ export abstract class CommonAuthWebview extends VueWebview {
 
     abstract signout(): Promise<void>
 
-    async listSsoConnections(): Promise<SsoConnection[]> {
-        return (await Auth.instance.listConnections()).filter((conn) => isSsoConnection(conn)) as SsoConnection[]
-    }
+    /** List current connections known by the extension for the purpose of preventing duplicates. */
+    abstract listSsoConnections(): Promise<SsoConnection[]>
 
     /**
      * Emit stored metric metadata. Does not reset the stored metric metadata, because it
@@ -277,5 +292,9 @@ export abstract class CommonAuthWebview extends VueWebview {
 
     cancelAuthFlow() {
         AuthSSOServer.lastInstance?.cancelCurrentFlow()
+    }
+
+    validateUrl(url: string) {
+        return isValidUrl(url)
     }
 }

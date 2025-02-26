@@ -4,7 +4,12 @@
  */
 
 import { ToolkitError } from '../shared/errors'
-import { featureName } from './constants'
+import {
+    featureName,
+    clientErrorMessages,
+    startCodeGenClientErrorMessages,
+    startTaskAssistLimitReachedMessage,
+} from './constants'
 import { uploadCodeError } from './userFacingText'
 import { i18n } from '../shared/i18n-helper'
 
@@ -17,18 +22,10 @@ export class ConversationIdNotFoundError extends ToolkitError {
 }
 
 export class TabIdNotFoundError extends ToolkitError {
-    static errorName = 'TabIdNotFoundError'
-
     constructor() {
         super(i18n('AWS.amazonq.featureDev.error.tabIdNotFoundError'), {
             code: 'TabIdNotFound',
         })
-    }
-}
-
-export class PanelLoadError extends ToolkitError {
-    constructor() {
-        super(`${featureName} UI panel failed to load`, { code: 'PanelLoadFailed' })
     }
 }
 
@@ -41,7 +38,6 @@ export class WorkspaceFolderNotFoundError extends ToolkitError {
 }
 
 export class UserMessageNotFoundError extends ToolkitError {
-    static errorName = 'UserMessageNotFoundError'
     constructor() {
         super(i18n('AWS.amazonq.featureDev.error.userMessageNotFoundError'), {
             code: 'MessageNotFound',
@@ -58,7 +54,6 @@ export class SelectedFolderNotInWorkspaceFolderError extends ToolkitError {
 }
 
 export class PromptRefusalException extends ToolkitError {
-    static errorName = 'PromptRefusalException'
     constructor() {
         super(i18n('AWS.amazonq.featureDev.error.promptRefusalException'), {
             code: 'PromptRefusalException',
@@ -66,15 +61,21 @@ export class PromptRefusalException extends ToolkitError {
     }
 }
 
+export class NoChangeRequiredException extends ToolkitError {
+    constructor() {
+        super(i18n('AWS.amazonq.featureDev.error.noChangeRequiredException'), {
+            code: 'NoChangeRequiredException',
+        })
+    }
+}
+
 export class FeatureDevServiceError extends ToolkitError {
-    static errorName = 'FeatureDevServiceError'
     constructor(message: string, code: string) {
         super(message, { code })
     }
 }
 
 export class PrepareRepoFailedError extends ToolkitError {
-    static errorName = 'PrepareRepoFailedError'
     constructor() {
         super(i18n('AWS.amazonq.featureDev.error.prepareRepoFailedError'), {
             code: 'PrepareRepoFailed',
@@ -83,9 +84,14 @@ export class PrepareRepoFailedError extends ToolkitError {
 }
 
 export class UploadCodeError extends ToolkitError {
-    static errorName = 'UploadCodeError'
     constructor(statusCode: string) {
         super(uploadCodeError, { code: `UploadCode-${statusCode}` })
+    }
+}
+
+export class UploadURLExpired extends ToolkitError {
+    constructor() {
+        super(i18n('AWS.amazonq.featureDev.error.uploadURLExpired'), { code: 'UploadURLExpired' })
     }
 }
 
@@ -96,37 +102,26 @@ export class IllegalStateTransition extends ToolkitError {
 }
 
 export class ContentLengthError extends ToolkitError {
-    static errorName = 'ContentLengthError'
     constructor() {
-        super(i18n('AWS.amazonq.featureDev.error.contentLengthError'), { code: ContentLengthError.errorName })
+        super(i18n('AWS.amazonq.featureDev.error.contentLengthError'), { code: ContentLengthError.name })
     }
 }
 
 export class ZipFileError extends ToolkitError {
-    static errorName = 'ZipFileError'
     constructor() {
-        super(i18n('AWS.amazonq.featureDev.error.zipFileError'), { code: ZipFileError.errorName })
-    }
-}
-
-export class PlanIterationLimitError extends ToolkitError {
-    static errorName = 'PlanIterationLimitError'
-    constructor() {
-        super(i18n('AWS.amazonq.featureDev.error.planIterationLimitError'), { code: PlanIterationLimitError.errorName })
+        super(i18n('AWS.amazonq.featureDev.error.zipFileError'), { code: ZipFileError.name })
     }
 }
 
 export class CodeIterationLimitError extends ToolkitError {
-    static errorName = 'CodeIterationLimitError'
     constructor() {
-        super(i18n('AWS.amazonq.featureDev.error.codeIterationLimitError'), { code: CodeIterationLimitError.errorName })
+        super(i18n('AWS.amazonq.featureDev.error.codeIterationLimitError'), { code: CodeIterationLimitError.name })
     }
 }
 
 export class MonthlyConversationLimitError extends ToolkitError {
-    static errorName = 'MonthlyConversationLimitError'
     constructor(message: string) {
-        super(message, { code: MonthlyConversationLimitError.errorName })
+        super(message, { code: MonthlyConversationLimitError.name })
     }
 }
 
@@ -149,4 +144,13 @@ export function createUserFacingErrorMessage(message: string) {
         return `${featureName} API request failed`
     }
     return message
+}
+
+export function isAPIClientError(error: { code?: string; message: string }): boolean {
+    return (
+        (error.code === 'StartCodeGenerationFailed' &&
+            startCodeGenClientErrorMessages.some((msg: string) => error.message.includes(msg))) ||
+        clientErrorMessages.some((msg: string) => error.message.includes(msg)) ||
+        error.message.includes(startTaskAssistLimitReachedMessage)
+    )
 }

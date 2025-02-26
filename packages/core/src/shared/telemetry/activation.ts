@@ -11,8 +11,8 @@ const localize = nls.loadMessageBundle()
 import * as vscode from 'vscode'
 import { AwsContext } from '../awsContext'
 import { DefaultTelemetryService } from './telemetryService'
-import { getLogger } from '../logger'
-import { getComputeRegion, isAmazonQ, isCloud9, productName } from '../extensionUtilities'
+import { getLogger } from '../logger/logger'
+import { getComputeRegion, isAmazonQ, productName } from '../extensionUtilities'
 import { openSettingsId, Settings } from '../settings'
 import { getSessionId, TelemetryConfig } from './util'
 import { isAutomation, isReleaseVersion } from '../vscode/env'
@@ -40,7 +40,6 @@ export async function activate(
     productName: AWSProduct
 ) {
     const config = new TelemetryConfig(settings)
-    await config.initAmazonQSetting() // TODO: Remove after a few releases.
 
     DefaultTelemetryClient.productName = productName
     globals.telemetry = await DefaultTelemetryService.create(awsContext, getComputeRegion())
@@ -71,7 +70,7 @@ export async function activate(
         )
 
         // Prompt user about telemetry if they haven't been
-        if (!isCloud9() && !hasUserSeenTelemetryNotice()) {
+        if (!hasUserSeenTelemetryNotice()) {
             showTelemetryNotice()
         }
 
@@ -79,8 +78,8 @@ export async function activate(
 
         if (globals.telemetry.telemetryEnabled) {
             // Only log the IDs if telemetry is enabled, so that users who have it disabled do not think we are sending events.
-            getLogger().info(`Telemetry Client ID: ${globals.telemetry.clientId}`)
-            getLogger().info(`Telemetry Session ID: ${getSessionId()}`)
+            getLogger().info(`Telemetry clientId: ${globals.telemetry.clientId}`)
+            getLogger().info(`Telemetry sessionId: ${getSessionId()}`)
         }
     } catch (e) {
         // Only throw in a production build because:

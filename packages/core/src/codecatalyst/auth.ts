@@ -8,7 +8,7 @@ import { onAccessDeniedException, CodeCatalystClient, createClient } from '../sh
 import { Auth } from '../auth/auth'
 import * as localizedText from '../shared/localizedText'
 import { getSecondaryAuth, setScopes } from '../auth/secondaryAuth'
-import { getLogger } from '../shared/logger'
+import { getLogger } from '../shared/logger/logger'
 import globals from '../shared/extensionGlobals'
 import { ToolkitError, isAwsError } from '../shared/errors'
 import { MetricName, MetricShapes, telemetry } from '../shared/telemetry/telemetry'
@@ -26,11 +26,11 @@ import {
     hasExactScopes,
 } from '../auth/connection'
 import { createBuilderIdConnection } from '../auth/utils'
-import { builderIdStartUrl } from '../auth/sso/model'
 import { showReauthenticateMessage } from '../shared/utilities/messages'
 import { ToolkitPromptSettings } from '../shared/settings'
 import { setContext } from '../shared/vscode/setContext'
 import { withTelemetryContext } from '../shared/telemetry/util'
+import { builderIdStartUrl } from '../auth/sso/constants'
 
 // Secrets stored on the macOS keychain appear as individual entries for each key
 // This is fine so long as the user has only a few accounts. Otherwise this should

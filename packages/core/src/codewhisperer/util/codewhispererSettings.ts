@@ -2,7 +2,8 @@
  * Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-import { fromExtensionManifest, migrateSetting } from '../../shared/settings'
+import { fromExtensionManifest } from '../../shared/settings'
+import { ArrayConstructor } from '../../shared/utilities/typeConstructors'
 
 const description = {
     showInlineCodeSuggestionsWithCodeReferences: Boolean, // eslint-disable-line id-length
@@ -12,25 +13,11 @@ const description = {
     workspaceIndexWorkerThreads: Number,
     workspaceIndexUseGPU: Boolean,
     workspaceIndexMaxSize: Number,
+    allowFeatureDevelopmentToRunCodeAndTests: Object,
+    ignoredSecurityIssues: ArrayConstructor(String),
 }
 
 export class CodeWhispererSettings extends fromExtensionManifest('amazonQ', description) {
-    // TODO: Remove after a few releases
-    public async importSettings() {
-        await migrateSetting(
-            { key: 'aws.codeWhisperer.includeSuggestionsWithCodeReferences', type: Boolean },
-            { key: 'amazonQ.showInlineCodeSuggestionsWithCodeReferences' }
-        )
-        await migrateSetting(
-            { key: 'aws.codeWhisperer.importRecommendation', type: Boolean },
-            { key: 'amazonQ.importRecommendationForInlineCodeSuggestions' }
-        )
-        await migrateSetting(
-            { key: 'aws.codeWhisperer.shareCodeWhispererContentWithAWS', type: Boolean },
-            { key: 'amazonQ.shareContentWithAWS' }
-        )
-    }
-
     public isSuggestionsWithCodeReferencesEnabled(): boolean {
         return this.get(`showInlineCodeSuggestionsWithCodeReferences`, false)
     }
@@ -62,6 +49,26 @@ export class CodeWhispererSettings extends fromExtensionManifest('amazonQ', desc
     public getMaxIndexSize(): number {
         // minimal 1MB
         return Math.max(this.get('workspaceIndexMaxSize', 250), 1)
+    }
+
+    public getAutoBuildSetting(): { [key: string]: boolean } {
+        return this.get('allowFeatureDevelopmentToRunCodeAndTests', {})
+    }
+
+    public async updateAutoBuildSetting(projectName: string, setting: boolean) {
+        const projects = this.getAutoBuildSetting()
+
+        projects[projectName] = setting
+
+        await this.update('allowFeatureDevelopmentToRunCodeAndTests', projects)
+    }
+
+    public getIgnoredSecurityIssues(): string[] {
+        return this.get('ignoredSecurityIssues', [])
+    }
+
+    public async addToIgnoredSecurityIssuesList(issueTitle: string) {
+        await this.update('ignoredSecurityIssues', [...this.getIgnoredSecurityIssues(), issueTitle])
     }
 
     static #instance: CodeWhispererSettings
